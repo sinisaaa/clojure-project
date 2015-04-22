@@ -17,7 +17,7 @@
 
 (defroutes app-routes
   (route/resources "/")
-  (route/not-found "Not Found"))
+  (route/not-found "Not Found2"))
 
 (def app
   (-> (routes home-routes app-routes)
