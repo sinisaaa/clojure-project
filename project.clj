@@ -6,7 +6,8 @@
                  [hiccup "1.0.5"]
                  [ring-server "0.3.1"]
                  [org.clojure/java.jdbc "0.3.6"]
-                 [mysql/mysql-connector-java "5.1.6"]]
+                 [mysql/mysql-connector-java "5.1.6"]
+                 [lib-noir"0.7.6"]]
   :plugins [[lein-ring "0.8.12"]]
   :ring {:handler clojure-project.handler/app
          :init clojure-project.handler/init

@@ -19,4 +19,6 @@
       ["select * from bx_books INNER JOIN bx_book_ratings ON bx_books.ISBN=bx_book_ratings.ISBN Where User_ID=?" id])]
     results))
 
+(defn get-user [id]
+  (let [res (sql/query db ["select * from bx_users where Username = ?" id])] (first res)))
 

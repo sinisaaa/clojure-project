@@ -5,7 +5,9 @@
             [hiccup.middleware :refer [wrap-base-url]]
             [compojure.handler :as handler]
             [compojure.route :as route]
-            [clojure-project.routes.home :refer [home-routes]]))
+            [clojure-project.routes.home :refer [home-routes]]
+            [noir.session :as session]
+            [ring.middleware.session.memory :refer [memory-store]]))
 
 (defn init []
   (println "clojure-project is starting"))
@@ -20,4 +22,6 @@
 (def app
   (-> (routes home-routes app-routes)
       (handler/site)
-      (wrap-base-url)))
+      (wrap-base-url)
+      (session/wrap-noir-session
+       {:store (memory-store)})))

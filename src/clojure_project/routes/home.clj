@@ -2,29 +2,64 @@
   (:require [compojure.core :refer :all]
             [clojure-project.views.layout :as layout]
             [clojure-project.models.db :as db]
-            [hiccup.page :as page]))
+            [hiccup.page :as page]
+            [hiccup.form :refer
+             [form-to label text-field password-field submit-button]]
+            [noir.response :refer [redirect]]
+            [noir.session :as session]))
+
+
 
 (defn title-lenght [title]
-  (if (> (count title) 40) 40 (count title)))
+  (if (> (count title) 40)
+    40
+    (count title)))
 
 
 (defn show-books []
 
-  [:div {:class "row"}
 
+  [:div {:class "row"}
     (for [{:keys [isbn book-title image-url-m]} (db/list-books-by-user 99)]
       [:div {:class "col-xs-6 col-md-3"}
       [:a {:class "thumbnail"}
-      [:img  {:src image-url-m}]
+      [:img  {:src image-url-m :onerror="this.src='/img/Default.png'"}]
       [:p {:class "book-title"} (subs book-title 0 (title-lenght book-title))]]])])
 
 
 (defn home []
+
   (layout/common
-   (page/include-css "/css/bootstrap.min.css")
+    (layout/nav-bar)
+
+   [:br][:br][:br]
+
    [:h1 "Books rated by you:"]
-                 (show-books)))
+      (show-books)))
+
+(defn process-login [username password]
+
+  (let [user (db/get-user username)]
+    (if (and (= username (:username user)) (= password (:password user)))
+        (do (session/put! :user username) (redirect "/"))
+        (redirect "/login"))))
+
+(defn login []
+   (layout/common
+   (form-to [:post "/login"]
+           [:div {:class "form-group"}
+           [:label {:for "username"} "Username:"]
+           [:input {:type "text" :class "form-control" :id "username" :name "username"}]
+           [:label {:for "pass"} "Password:"]
+           [:input {:type "password" :class "form-control" :id "pass" :name "pass"}]]
+           [:input {:type "submit" :value "Login"}])))
 
 
 (defroutes home-routes
-  (GET "/" [] (home)))
+   (GET "/" []    (if (session/get :user) (home) (redirect "/login")))
+   (GET "/login" [] (login))
+   (POST "/login" [username pass]
+        (process-login username pass))
+   (GET "/logout" [] (session/clear!) (redirect "/login")))
+
+
