@@ -9,29 +9,6 @@
             [noir.session :as session]))
 
 
-(defn book-details [id]
-  (layout/common
-    (layout/nav-bar)
-       [:br][:br]
-       (book-details-content id)))
-
-
-(defn home []
-  (layout/common
-    (layout/nav-bar)
-      [:br][:br][:br]
-      (show-books)))
-
-(defn process-login [username password]
-  (let [user (db/get-user username)]
-    (if (and (= username (:username user)) (= password (:password user)))
-        (do (session/put! :id (:user_id user)) (redirect "/"))
-        (redirect "/login"))))
-
-(defn add-rating [isbn rating]
-   (db/add-rating isbn rating (session/get :id))
-      (redirect "/"))
-
 (defn title-lenght [title]
   (if (> (count title) 40)
     40
@@ -39,11 +16,11 @@
 
 (defn show-books []
   [:div {:class "row"}
-    (for [{:keys [isbn book-title image-url-m]} (db/list-books-by-user (session/get :id))]
+    (for [{:keys [isbn book_title image_url_m]} (db/list-books-by-user (session/get :id))]
       [:div {:class "col-xs-6 col-md-3"}
       [:a {:class "thumbnail" :href (str "/book/" isbn) }
-      [:img  {:src image-url-m :onerror="this.src='/img/Default.png'"}]
-      [:p {:class "book-title"} (subs book-title 0 (title-lenght book-title))]]])])
+      [:img  {:src image_url_m :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
+      [:p {:class "book-title"} (subs book_title 0 (title-lenght book_title))]]])])
 
 (defn book-details-content [isbn]
   (let [book (db/get-book isbn)]
@@ -55,8 +32,8 @@
          [:br][:br]
          [:div {:align "center" :style "font-size:medium;"}
          [:div [:b "ISBN:   "] [:i (:isbn book)]]
-         [:div [:b "Title:   "] [:i(:book-title book)]]
-         [:div [:b "Author:   "] [:i(:book-author book)]]
+         [:div [:b "Title:   "] [:i(:book_title book)]]
+         [:div [:b "Author:   "] [:i(:book_author book)]]
          [:div [:b "Year:   "] [:i(:year-of-publication book)]]
          [:div [:b "Publisher:   "] [:i(:publisher book)]]
 
@@ -81,10 +58,50 @@
                 [:button {:class "btn btn-lg btn-primary btn-block" :type "submit"} "Sign in"]]]
                 ]]]))
 
+(defn recommended-books []
+ [:div {:class "row"}
+    (for [{:keys [isbn avg book_title image_url_m]} (db/get-books-by-author (session/get :id))]
+      [:div {:class "col-xs-6 col-md-3"}
+      [:a {:class "thumbnail" :href (str "/book/" isbn) }
+      [:img  {:src image_url_m :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
+      [:p {:class "book-title"} (str (subs book_title 0 (title-lenght book_title))  \( avg \) )]]])])
+
+
+(defn book-details [id]
+  (layout/common
+    (layout/nav-bar)
+       [:br][:br]
+       (book-details-content id)))
+
+
+(defn home []
+  (layout/common
+    (layout/nav-bar)
+      [:br][:br][:br]
+      (show-books)))
+
+(defn recommend []
+  (layout/common
+    (layout/nav-bar)
+      [:br][:br][:br]
+      (recommended-books)))
+
+(defn process-login [username password]
+  (let [user (db/get-user username)]
+    (if (and (= username (:username user)) (= password (:password user)))
+        (do (session/put! :id (:user_id user)) (redirect "/"))
+        (redirect "/login"))))
+
+(defn add-rating [isbn rating]
+   (db/add-rating isbn rating (session/get :id))
+      (redirect "/"))
+
+
+
 
 (defroutes home-routes
    (GET "/" []
-        (if (session/get :id) (home) (redirect "/login")))
+        (if (session/get :id) (recommend) (redirect "/login")))
 
    (GET "/your-books" []
         (if (session/get :id) (home) (redirect "/login")))
