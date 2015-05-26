@@ -48,3 +48,43 @@
     (let [res (sql/query db ["select ISBN, Book_Title, Image_URL_M from bx_books where Book_Author = ? and ISBN NOT IN (Select isbn from bx_book_ratings where User_ID= ?)" (:book_author author) id])]
       (sort-by :avg > (map get-average-rating res)))))
 
+
+;; Recommendation by euclidean-distance
+
+;;Compare to users with at least one common book
+(defn base-similar-users [id]
+(let [results (sql/query db
+      ["SELECT * FROM bx_book_ratings WHERE User_ID IN (select DISTINCT User_ID from bx_books INNER JOIN bx_book_ratings ON bx_books.ISBN=bx_book_ratings.ISBN WHERE bx_book_ratings.ISBN IN (SELECT bx_book_ratings.ISBN FROM bx_book_ratings WHERE User_ID=?))" id])]
+   (group-by :user_id results)))
+
+;;Compare to all users
+(defn list-users []
+(let [results (sql/query db
+      ["select * from bx_users inner join bx_book_ratings on bx_book_ratings.User_ID=bx_users.User_ID"])]
+        (group-by :user_id results)))
+
+(defn change-to-map [users]
+  (reduce
+   (fn [m v]
+     (assoc m (:isbn v) (:book_rating v))) {} users))
+
+
+(defn euclidean-distance [person1 person2]
+  (let [person1 (change-to-map person1)]
+  (let [person2 (change-to-map person2)]
+  (let [same-items (filter person1 (keys person2))]
+    (if (= 0 (count same-items))
+     0
+     (let [result (/ 1.0 (inc (reduce (fn [acc v]
+                         (let [score1 (person1 v)
+                               score2 (person2 v)]
+                          (+ acc (Math/pow (- score1 score2) 2))))
+                                      0 same-items)))]
+       result))))))
+
+
+(defn top-matches [similarity prefs person]
+   (sort-by second >
+            (map (fn [[k v]]
+                [k (similarity (prefs person) (prefs k))])
+     (dissoc prefs person))))
