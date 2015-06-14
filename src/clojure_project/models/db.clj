@@ -11,8 +11,9 @@
 
 (defn list-books []
 (let [results (sql/query db
-      ["select * from bx_books ORDER BY ISBN DESC LIMIT 100"])]
+      ["select bx_books.ISBN, bx_book_ratings.Book_Rating from bx_books inner join bx_book_ratings on bx_book_ratings.ISBN=bx_books.ISBN ORDER BY bx_books.ISBN DESC LIMIT 100"])]
         results))
+
 
 (defn list-books-by-user [id]
 (let [results (sql/query db
@@ -54,8 +55,18 @@
 ;;Compare to users with at least one common book
 (defn base-similar-users [id]
 (let [results (sql/query db
+      ["SELECT Book_Rating, User_ID FROM bx_book_ratings WHERE User_ID IN (select DISTINCT User_ID from bx_books INNER JOIN bx_book_ratings ON bx_books.ISBN=bx_book_ratings.ISBN WHERE bx_book_ratings.ISBN IN (SELECT bx_book_ratings.ISBN FROM bx_book_ratings WHERE User_ID=?)) and ISBN not in(select ISBN from bx_book_ratings where User_ID=?)" id id])]
+   results))
+
+(defn base-similar-users2 [id]
+(let [results (sql/query db
       ["SELECT * FROM bx_book_ratings WHERE User_ID IN (select DISTINCT User_ID from bx_books INNER JOIN bx_book_ratings ON bx_books.ISBN=bx_book_ratings.ISBN WHERE bx_book_ratings.ISBN IN (SELECT bx_book_ratings.ISBN FROM bx_book_ratings WHERE User_ID=?))" id])]
    (group-by :user_id results)))
+
+(defn base-similar-books [id]
+(let [results (sql/query db
+      ["SELECT * FROM bx_book_ratings WHERE User_ID IN (select DISTINCT User_ID from bx_books INNER JOIN bx_book_ratings ON bx_books.ISBN=bx_book_ratings.ISBN WHERE bx_book_ratings.ISBN IN (SELECT bx_book_ratings.ISBN FROM bx_book_ratings WHERE User_ID=?))" id])]
+   (group-by :isbn results)))
 
 ;;Compare to all users
 (defn list-users []
@@ -63,28 +74,78 @@
       ["select * from bx_users inner join bx_book_ratings on bx_book_ratings.User_ID=bx_users.User_ID"])]
         (group-by :user_id results)))
 
+(defn list-books-recommend []
+(let [results (sql/query db
+      ["select bx_book_ratings.ISBN as ISBN, Book_Rating, User_ID from bx_books inner join bx_book_ratings on bx_book_ratings.ISBN=bx_books.ISBN"])]
+        (group-by :isbn results)))
+
+
+(defn list-user-ratings [id]
+(let [results (sql/query db
+      ["select ISBN, Book_Rating from bx_book_ratings WHERE User_ID=? and ISBN not IN (Select ISBN from bx_book_ratings where User_ID=99)" id])]
+        results))
+
 (defn change-to-map [users]
   (reduce
    (fn [m v]
      (assoc m (:isbn v) (:book_rating v))) {} users))
 
 
-(defn euclidean-distance [person1 person2]
-  (let [person1 (change-to-map person1)]
-  (let [person2 (change-to-map person2)]
-  (let [same-items (filter person1 (keys person2))]
-    (if (= 0 (count same-items))
+
+(defn euclidean-distance [user1 user2]
+  (let [user1 (change-to-map user1)]
+  (let [user2 (change-to-map user2)]
+  (let [same-books (filter user1 (keys user2))]
+    (if (= 0 (count same-books))
      0
      (let [result (/ 1.0 (inc (reduce (fn [acc v]
-                         (let [score1 (person1 v)
-                               score2 (person2 v)]
+                         (let [score1 (user1 v)
+                               score2 (user2 v)]
                           (+ acc (Math/pow (- score1 score2) 2))))
-                                      0 same-items)))]
+                                      0 same-books)))]
        result))))))
 
 
-(defn top-matches [similarity prefs person]
+(defn top-matches [algorithm base user]
    (sort-by second >
             (map (fn [[k v]]
-                [k (similarity (prefs person) (prefs k))])
-     (dissoc prefs person))))
+                [k (algorithm (base user) (base k))])
+     (dissoc base user))))
+
+
+
+(defn multiplyCoeff [base similar-users user]
+ (reduce
+   (fn [k v]
+     (let
+       [data (list-user-ratings (first v))
+       multiplied-coeff (apply assoc {}
+                                (interleave (map :isbn data)
+                                            (map #(* % (second v)) (map :book_rating data))))]
+       (assoc k (first v) multiplied-coeff))) {} similar-users))
+
+
+(defn sum-sims [multiplied-coeff similar-users]
+ (let [sum
+        (doall(reduce (fn [k v] (merge-with #(+ %1 %2) k v)) {} (vals multiplied-coeff)))]
+ (reduce (fn [h m]
+            (let [movie (first m)
+                  rated-users (reduce
+                               (fn [h m] (if (contains? (val m) movie)
+                                          (conj h (key m)) h))
+                               [] multiplied-coeff)
+                  similarities (apply + (map #(similar-users %) rated-users))]
+              (assoc h movie (/(sum movie) similarities)) ) ) {} sum)))
+
+(defn sort-recommendations [recommended-list]
+      (into (sorted-map-by (fn [key1 key2]
+                         (compare [(get recommended-list key2) key2]
+                                  [(get recommended-list key1) key1])))
+        recommended-list))
+
+(defn book-recommendation[id]
+  (sort-recommendations (sum-sims (multiplyCoeff (list-users) (top-matches euclidean-distance (base-similar-users2 id) id)id)
+                   (into {} (top-matches euclidean-distance (list-users) id))))
+  )
+
+

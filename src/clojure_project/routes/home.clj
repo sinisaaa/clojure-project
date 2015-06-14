@@ -22,6 +22,16 @@
       [:img  {:src image_url_m :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
       [:p {:class "book-title"} (subs book_title 0 (title-lenght book_title))]]])])
 
+(defn show-recommendend-books []
+  [:div {:class "row"}
+   (let [ids (take 30 (keys (db/book-recommendation (session/get :id))))]
+    (for [id ids]
+      (let [book (db/get-book id)]
+      [:div {:class "col-xs-6 col-md-3"}
+      [:a {:class "thumbnail" :href (str "/book/" (:isbn book)) }
+      [:img  {:src (:image_url_m book) :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
+      [:p {:class "book-title"} (subs (:book_title book) 0 (title-lenght (:book_title book)))]]])))])
+
 (defn book-details-content [isbn]
   (let [book (db/get-book isbn)]
     (let [rating (db/get-book-rating isbn (session/get :id))]
@@ -58,9 +68,9 @@
                 [:button {:class "btn btn-lg btn-primary btn-block" :type "submit"} "Sign in"]]]
                 ]]]))
 
-(defn recommended-books []
+(defn recommended-books-by-author []
  [:div {:class "row"}
-    (for [{:keys [isbn avg book_title image_url_m]} (db/get-books-by-author (session/get :id))]
+    (for [{:keys [isbn avg book_title image_url_m]} (take 20 (db/get-books-by-author (session/get :id)))]
       [:div {:class "col-xs-6 col-md-3"}
       [:a {:class "thumbnail" :href (str "/book/" isbn) }
       [:img  {:src image_url_m :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
@@ -80,11 +90,17 @@
       [:br][:br][:br]
       (show-books)))
 
+(defn recommend-by-author []
+  (layout/common
+    (layout/nav-bar)
+      [:br][:br][:br]
+      (recommended-books-by-author)))
+
 (defn recommend []
   (layout/common
     (layout/nav-bar)
       [:br][:br][:br]
-      (recommended-books)))
+      (show-recommendend-books)))
 
 (defn process-login [username password]
   (let [user (db/get-user username)]
@@ -105,6 +121,9 @@
 
    (GET "/your-books" []
         (if (session/get :id) (home) (redirect "/login")))
+
+   (GET "/recommend-by-author" []
+        (if (session/get :id) (recommend-by-author) (redirect "/login")))
 
    (GET "/login" [] (login))
 
