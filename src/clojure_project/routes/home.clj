@@ -9,12 +9,16 @@
             [noir.session :as session]))
 
 
-(defn title-lenght [title]
+(defn title-lenght
+ "Trim title lenght"
+  [title]
   (if (> (count title) 40)
     40
     (count title)))
 
-(defn show-books []
+(defn show-books
+ "Print books rated by user"
+  []
   [:div {:class "row"}
     (for [{:keys [isbn book_title image_url_m]} (db/list-books-by-user (session/get :id))]
       [:div {:class "col-xs-6 col-md-3"}
@@ -22,7 +26,9 @@
       [:img  {:src image_url_m :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
       [:p {:class "book-title"} (subs book_title 0 (title-lenght book_title))]]])])
 
-(defn show-recommendend-books []
+(defn show-recommendend-books
+ "Print recommend books"
+  []
   [:div {:class "row"}
    (let [ids (take 30 (keys (db/book-recommendation (session/get :id))))]
     (for [id ids]
@@ -32,8 +38,11 @@
       [:img  {:src (:image_url_m book) :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
       [:p {:class "book-title"} (subs (:book_title book) 0 (title-lenght (:book_title book)))]]])))])
 
-(defn book-details-content [isbn]
-  (let [book (db/get-book isbn)]
+(defn book-details-content
+  "Pint book details"
+  [isbn]
+  (let [book (db/get-book isbn)
+    recommend-books (take 4 (db/similar-books isbn ))]
     (let [rating (db/get-book-rating isbn (session/get :id))]
     [:div {:class "panel panel-default"}
       [:div {:class "panel-body"}
@@ -52,9 +61,22 @@
              [:form {:method "POST" :action "/add-rating" :id "form"}
              [:input {:class "rating" :data-max "10" :data-min "1" :name "rate" :type"number" :data-empty-value "1"}]
              [:input {:type "hidden" :name "isbn" :value (:isbn book)}]]])
+          [:div {:class "row"}
+
+         [:h3 "Similar books:"]
+         (for [id_r recommend-books]
+         (let [book_r (db/get-book (first id_r))]
+         [:div {:class "col-xs-6 col-md-3"}
+         [:a {:class "thumbnail" :href (str "/book/" (:isbn book_r)) }
+         [:img  {:src (:image_url_m book_r) :onerror="this.src='/img/Default.png'" :style "min-height:160px;height:160px;"}]
+         ]]))]
+
+
           ]]])))
 
-(defn login[]
+(defn login
+   "Print login form"
+  []
   (layout/common
    [:div {:class "container"}
     [:div {:class "row"}
@@ -68,7 +90,9 @@
                 [:button {:class "btn btn-lg btn-primary btn-block" :type "submit"} "Sign in"]]]
                 ]]]))
 
-(defn recommended-books-by-author []
+(defn recommended-books-by-author
+  "Print recommend books by most readed author"
+  []
  [:div {:class "row"}
     (for [{:keys [isbn avg book_title image_url_m]} (take 20 (db/get-books-by-author (session/get :id)))]
       [:div {:class "col-xs-6 col-md-3"}
