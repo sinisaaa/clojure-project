@@ -47,7 +47,7 @@
     [:div {:class "panel panel-default"}
       [:div {:class "panel-body"}
         [:br]
-        [:img  {:src (:image-url-l book) :style " display: block;margin-left: auto;margin-right: auto;"}]
+        [:img  {:src (:image_url_l book) :style " display: block;margin-left: auto;margin-right: auto;"}]
          [:br][:br]
          [:div {:align "center" :style "font-size:medium;"}
          [:div [:b "ISBN:   "] [:i (:isbn book)]]

@@ -3,11 +3,9 @@
             [hiccup.page :as hic-p])
    (:import java.sql.DriverManager))
 
-(def db {:classname "com.mysql.jdbc.Driver"
-         :subprotocol "mysql"
-         :subname "//localhost:3306/clojure_recommendations"
-         :user "root"
-         :password "root"})
+(def db {:classname "org.sqlite.JDBC"
+         :subprotocol "sqlite"
+         :subname "clojure_recommendations.db3"})
 
 (defn list-books
 "Return list of all books grouped by ISBN"

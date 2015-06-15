@@ -7,6 +7,7 @@
                  [ring-server "0.3.1"]
                  [org.clojure/java.jdbc "0.3.6"]
                  [mysql/mysql-connector-java "5.1.6"]
+                 [org.xerial/sqlite-jdbc "3.7.2"]
                  [lib-noir"0.7.6"]]
   :plugins [[lein-ring "0.8.12"]]
   :ring {:handler clojure-project.handler/app
