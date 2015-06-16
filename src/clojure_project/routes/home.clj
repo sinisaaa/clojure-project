@@ -2,6 +2,7 @@
   (:require [compojure.core :refer :all]
             [clojure-project.views.layout :as layout]
             [clojure-project.models.db :as db]
+            [clojure-project.recommend :as rec]
             [hiccup.page :as page]
             [hiccup.form :refer
              [form-to label text-field password-field submit-button]]
@@ -30,7 +31,7 @@
  "Print recommend books"
   []
   [:div {:class "row"}
-   (let [ids (take 30 (keys (db/book-recommendation (session/get :id))))]
+   (let [ids (take 30 (keys (rec/book-recommendation (session/get :id))))]
     (for [id ids]
       (let [book (db/get-book id)]
       [:div {:class "col-xs-6 col-md-3"}
@@ -42,7 +43,7 @@
   "Pint book details"
   [isbn]
   (let [book (db/get-book isbn)
-    recommend-books (take 4 (db/similar-books isbn ))]
+    recommend-books (take 4 (rec/similar-books isbn ))]
     (let [rating (db/get-book-rating isbn (session/get :id))]
     [:div {:class "panel panel-default"}
       [:div {:class "panel-body"}
