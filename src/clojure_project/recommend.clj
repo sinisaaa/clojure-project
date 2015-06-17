@@ -1,22 +1,23 @@
 (ns clojure-project.recommend
-  (:require [clojure-project.models.db :as db]))
+  (:require [clojure-project.models.db :as db]
+            [noir.session :as session]))
 
 (defn change-to-map
   "Change to map with isbn as key and rating as value"
   [users]
   (reduce
-   (fn [m v]
-     (assoc m (:isbn v) (:book_rating v))) {} users))
+    (fn [m v]
+      (assoc m (:isbn v) (:book_rating v))) {} users))
 
 (defn change-to-map-books
  "Change to map with user_id as key and rating as value"
   [books]
   (reduce
-   (fn [m v]
-     (assoc m (:user_id v) (:book_rating v))) {} books))
+    (fn [m v]
+      (assoc m (:user_id v) (:book_rating v))) {} books))
 
 (defn sq ^double [^double score1 ^double score2]
-   (java.lang.Math/pow (- score1 score2) 2))
+  (java.lang.Math/pow (- score1 score2) 2))
 
 
 (defn cosine-simillarity
@@ -30,15 +31,15 @@
                                score2 (user2 v)]
                           (+ acc (* score1 score2))))
                                       0 same-books)
-          magnitude-user-1 (java.lang.Math/sqrt (reduce (fn [acc1 v1]
+           magnitude-user-1 (java.lang.Math/sqrt (reduce (fn [acc1 v1]
                               (let [score1 (user1 v1)]
                                 (+ acc1 (* score1 score1))))
                                           0 same-books))
-          magnitude-user-2 (java.lang.Math/sqrt (reduce (fn [acc2 v2]
+           magnitude-user-2 (java.lang.Math/sqrt (reduce (fn [acc2 v2]
                               (let [score2 (user2 v2)]
                                 (+ acc2 (* score2 score2))))
                                           0 same-books))]
-       (/ dot-product (* magnitude-user-1 magnitude-user-2) )))))
+      (/ dot-product (* magnitude-user-1 magnitude-user-2) )))))
 
 
 (defn euclidean-distance
@@ -63,26 +64,26 @@
     (if (= 0 size)
      0
      (let [sum1 (reduce (fn [acc v]
-                         (let [score (user1 v)]
-                          (+ acc score)))
+                          (let [score (user1 v)]
+                            (+ acc score)))
                               0 same-books)
            sum2 (reduce (fn [acc v]
-                         (let [score (user2 v)]
-                          (+ acc score)))
+                          (let [score (user2 v)]
+                            (+ acc score)))
                               0 same-books)
            sum1-sq (reduce (fn [acc v]
-                         (let [score (user1 v)]
-                          (+ acc (* score score))))
-                              0 same-books)
+                             (let [score (user1 v)]
+                               (+ acc (* score score))))
+                                 0 same-books)
            sum2-sq (reduce (fn [acc v]
-                         (let [score (user2 v)]
-                          (+ acc (* score score))))
-                              0 same-books)
+                             (let [score (user2 v)]
+                               (+ acc (* score score))))
+                                 0 same-books)
            sum-product (reduce (fn [acc v]
-                         (let [score (user1 v)
-                               score2 (user2 v)]
-                          (+ acc (* score score2))))
-                              0 same-books)
+                                 (let [score (user1 v)
+                                       score2 (user2 v)]
+                                   (+ acc (* score score2))))
+                                     0 same-books)
            numeratorr (- sum-product (/ (* sum1 sum2) size))
            den1 (- sum1-sq (/ (* sum1 sum1) size))
            den2 (- sum2-sq (/ (* sum2 sum2) size))
@@ -90,14 +91,14 @@
 
         (if (zero? denominatorr)
          0
-         (/ numeratorr denominatorr))))))
+        (/ numeratorr denominatorr))))))
 
 
 (defn top-matches [algorithm base user]
-   (sort-by second >
-            (map (fn [[k v]]
-                [k (algorithm (change-to-map (base user)) (change-to-map (base k)))])
-     (dissoc base user))))
+  (sort-by second >
+    (map (fn [[k v]]
+           [k (algorithm (change-to-map (base user)) (change-to-map (base k)))])
+    (dissoc base user))))
 
 
 
@@ -107,8 +108,8 @@
      (let
        [data (db/list-user-ratings (first v))
        multiplied-coeff (apply assoc {}
-                                (interleave (map :isbn data)
-                                            (map #(* % (second v)) (map :book_rating data))))]
+                          (interleave (map :isbn data)
+                            (map #(* % (second v)) (map :book_rating data))))]
        (assoc k (first v) multiplied-coeff))) {} similar-users))
 
 
@@ -117,31 +118,30 @@
  (reduce (fn [h m]
             (let [book (first m)
                   users (reduce
-                               (fn [h m] (if (contains? (val m) book)
+                          (fn [h m] (if (contains? (val m) book)
                                           (conj h (key m)) h))
                                [] multiplied-coeff)
                   similar (apply + (map #(similar-users %) users))]
-              (assoc h book (/(sum book) similar)) ) ) {} sum)))
+              (assoc h book (/(sum book) similar)))) {} sum)))
 
 (defn sort-recommendations [recommended-list]
       (into (sorted-map-by (fn [key1 key2]
-                         (compare [(get recommended-list key2) key2]
-                                  [(get recommended-list key1) key1])))
-        recommended-list))
+                             (compare [(get recommended-list key2) key2]
+                                      [(get recommended-list key1) key1])))
+      recommended-list))
 
 (defn book-recommendation
   "Return recommended books for user"
   [id]
   (sort-recommendations
    (sum-sims (multiplyCoeff (db/list-users) (top-matches cosine-simillarity (db/base-similar-users2 id) id)id)
-                   (into {} (top-matches cosine-simillarity (db/list-users) id))))
-  )
+             (into {} (top-matches cosine-simillarity (db/base-similar-users2 id) id)))))
 
 (defn similar-books
  "Return best matched books for book"
   [book]
   (let [base (db/list-books)]
    (sort-by second >
-            (map (fn [[k v]]
-                [k (euclidean-distance (change-to-map-books (base book)) (change-to-map-books (base k)))])
+     (map (fn [[k v]]
+            [k (euclidean-distance (change-to-map-books (base book)) (change-to-map-books (base k)))])
      (dissoc base book)))))
