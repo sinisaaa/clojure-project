@@ -1,6 +1,24 @@
-# clojure-project
+# Books recommandation system
 
-FIXME
+Application using technique called collaborative filtering to recommend books for user based on already rated books.
+Algorithms used in this application are simple algorithms caled: 
+
+-Euclidean Distance Score
+-Pearson Correlation Score
+-Cosine Similarity Score
+
+It has been developed in the LightTable IDE, and it uses SQLite database with three tables: bx_books (books details), bx_users (users details), bx_book_ratings (books ratings - from 1 to 10).
+
+Functionalities:
+-Recommend books for user based on similar users books ratings
+-Recommend best rated books for users based on user favorite author (most rated by user)
+-Recommend similar books for book
+-User can rate recommended books
+-Criterium tests
+
+Login data:
+user: user
+pass: user
 
 ## Prerequisites
 
@@ -16,4 +34,4 @@ To start a web server for the application, run:
 
 ## License
 
-Copyright © 2015 FIXME
+Copyright © 2015 Sinisa Nogic
