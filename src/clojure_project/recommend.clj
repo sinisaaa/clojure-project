@@ -102,7 +102,7 @@
 
 
 
-(defn multiplyCoeff [base similar-users user]
+(defn multiply-coeff [base similar-users user]
  (reduce
    (fn [k v]
      (let
@@ -134,7 +134,7 @@
   "Return recommended books for user"
   [id]
   (sort-recommendations
-   (sum-sims (multiplyCoeff (db/list-users) (top-matches cosine-simillarity (db/base-similar-users2 id) id)id)
+   (sum-sims (multiply-coeff (db/list-users) (top-matches cosine-simillarity (db/base-similar-users2 id) id)id)
              (into {} (top-matches cosine-simillarity (db/base-similar-users2 id) id)))))
 
 (defn similar-books

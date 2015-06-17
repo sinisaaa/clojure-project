@@ -4,6 +4,11 @@
              [clojure-project.models.db :as db]
              [clojure-project.recommend :as rec]))
 
+   ;Testing machine specification:
+   ;Intel Pentium CPU 2020M @ 2x2.4GHz
+   ;4GB RAM
+   ;64-bit OS Windows 8.1
+
 
    ;Execution time mean : 68.879274 ms
    ;Execution time std-deviation : 5.338567 ms
